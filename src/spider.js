@@ -17,42 +17,32 @@ async function crawlWebpage(url) {
     // 启动无头浏览器
     const browser = await puppeteer.launch({
       executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', // 指定 Chrome 的路径
-      headless: false // 设置为 false 以便在非无头模式下运行（可选）
+      headless: true // 设置为 false 以便在非无头模式下运行（可选）
     });
     const page = await browser.newPage();
 
     // 导航到目标URL
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 100000 });
 
-    // 等待页面加载完成
-    await page.waitForSelector('#__next > div:nth-child(2) > div.cg-content.MuiBox-root.cg-style-vsqgwu > div.plr20 > div > div:nth-child(2) > div > div.MuiGrid-root.MuiGrid-direction-xs-row.MuiGrid-grid-xs-12.MuiGrid-grid-sm-12.MuiGrid-grid-md-5.cg-style-1qkyzxi > div > div:nth-child(1) > div', { timeout: 50000 });
 
-    // 提取指定元素的内容
-    const maxElementContent = await page.$eval('#__next > div:nth-child(2) > div.cg-content.MuiBox-root.cg-style-vsqgwu > div.plr20 > div > div:nth-child(2) > div > div.MuiGrid-root.MuiGrid-direction-xs-row.MuiGrid-grid-xs-12.MuiGrid-grid-sm-12.MuiGrid-grid-md-5.cg-style-1qkyzxi > div > div:nth-child(1) > div', el => el.textContent);
-
-    console.log('提取的元素内容:', maxElementContent);
-    // 进一步解析 maxElementContent
-    const lines = maxElementContent.split('\n'); // 按换行符分割
-    const parsedData = lines.map(line => {
-        const parts = line.split(/\s+/); // 按空格分割
-        return new Rate (
-            parts[0],
-            parts[1],
-            parts[2]
-        );
+    await page.waitForSelector('.MuiBox-root.cg-style-wa2shg', { timeout: 50000 });
+    // 提取所有指定元素的内容
+    const elements = await page.$$eval('.MuiBox-root.cg-style-wa2shg', elements => 
+        elements.map(el => {
+          const childElements = el.childNodes; // 获取所有子元素
+          const aTagContent = childElements[0]?.textContent || "";
+          const divTagContent = childElements[1]?.textContent || '';
+          return { aTagContent, divTagContent };
+        }));
+    elements.forEach(element => {
+      // 提取a标签的文本内容并用空格符分割
+      const parts = element.aTagContent.split(/\s+/); // 按空格分割
+      const divTagContent = element.divTagContent || '';
+      rateList.push(new Rate(parts[0], parts[1], parseFloat(divTagContent)));
     });
 
-    // 打印解析后的数据
-    console.log('解析后的数据:', parsedData);
-
-    // 等待页面加载完成
-    await page.waitForSelector('#__next > div > div.cg-content.MuiBox-root.cg-style-vsqgwu > div.plr20 > div > div:nth-child(2) > div > div.MuiGrid-root.MuiGrid-direction-xs-row.MuiGrid-grid-xs-12.MuiGrid-grid-sm-12.MuiGrid-grid-md-5.cg-style-1qkyzxi > div > div:nth-child(2)', { timeout: 50000 });
-
-    // 提取指定元素的内容
-    const minElementContent = await page.$eval('#__next > div > div.cg-content.MuiBox-root.cg-style-vsqgwu > div.plr20 > div > div:nth-child(2) > div > div.MuiGrid-root.MuiGrid-direction-xs-row.MuiGrid-grid-xs-12.MuiGrid-grid-sm-12.MuiGrid-grid-md-5.cg-style-1qkyzxi > div > div:nth-child(2)', el => el.textContent);
-
-    console.log('提取的元素内容:', minElementContent);
-
+    console.log('提取的所有元素内容:', elements);
+    console.log('rateList:', rateList);
     // 关闭浏览器
     await browser.close();
   } catch (error) {
