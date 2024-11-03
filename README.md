@@ -1,5 +1,5 @@
 # coingrassSpider
 
 # 使用说明
-npm install
+npm install  
 node src/index.js
